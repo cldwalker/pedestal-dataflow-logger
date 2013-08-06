@@ -1,20 +1,21 @@
 (ns ^:shared io.pedestal.app.dataflow-logger.core
   (:require [clojure.string]))
 
-(defn- log-string [ending state & args]
+(defn- log-string [ending [state & args]]
   (format "DATAFLOW: %s matched on \"%s\" and %s:"
           state (clojure.string/join " " args) ending))
 
 (def log-args (partial log-string "received arguments"))
 (def log-return (partial log-string "returned"))
 
-(defn wrap-fn [f {:keys [log-fn]} log-string-args]
-  (let [msg (apply log-return log-string-args)]
-    (fn [& args]
-      #_(log-fn msg args)
-      (let [ret (apply f args)]
-        (log-fn msg ret)
-        ret))))
+(defn wrap-fn [f {:keys [log-fn locations]} log-string-args]
+  (fn [& args]
+    (when (contains? locations :args)
+      (log-fn (log-args log-string-args) args)) 
+    (let [ret (apply f args)]
+      (when (contains? locations :return)
+        (log-fn (log-return log-string-args) ret))
+      ret)))
 
 (defn- wrap-transform [options]
   (fn [[op path f]]
@@ -40,8 +41,9 @@
         ;; TODO: Remove once emit has been reviewed. Yes this fails in cljs
         (prn "EMIT not handled" emit-entry)))))
 
-(defn wrap-app [app log-fn]
-  (let [options {:log-fn log-fn}]
+(defn wrap-app [app options]
+  (let [options (merge {:locations [:args]} options)
+        options (assoc options :locations (set (:locations options)))]
     (assoc app
            :transform (mapv (wrap-transform options) (:transform app))
            :derive (set (map (wrap-derive options) (:derive app)))
