@@ -1,7 +1,7 @@
 ## Description
 
 This experiment logs a pedestal-app v2 dataflow cycle - printing to stdout in clj and to the JS
-console in a browser. This experiment aims to inform what dataflow logging should go into
+console in a browser. Useful pieces of this experiment will hopefully go into
 [pedestal-app](https://github.com/pedestal/pedestal/issues/154).
 
 ## Install
